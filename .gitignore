@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+kaggle.json
+relatorios/
+dados/bronze/*
+dados/prata/*.parquet
+dados/ouro/*
+!dados/**/.gitkeep
+!dados/prata/proveniencia.jsonl
