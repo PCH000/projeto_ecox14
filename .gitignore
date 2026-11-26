@@ -11,3 +11,4 @@ pipeline.log
 ecox14/target/
 ecox14/logs/
 ecox14/dbt_packages/
+logs/

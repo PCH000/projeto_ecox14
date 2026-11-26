@@ -63,3 +63,15 @@ Antes da juncao, foi corrigido um defeito no cabecalho do CSV bruto da Steam (`D
 
 ### Atributo derivado pos-juncao: `diferenca_nota`
 Diferenca entre a nota da critica do jogo (`Metacritic score`, escala 0-100) e a nota do filme (`imdb_rating * 10`, convertida para escala 0-100). Calculado para os 426 registros que possuem ambas as notas preenchidas, permitindo avaliar diretamente se as adaptacoes tendem a ser melhor avaliadas no cinema (valor negativo) ou nos jogos (valor positivo).
+
+## Modelagem e Carga (Camada Ouro)
+Os dados tratados da Camada Prata sao carregados no banco analitico DuckDB (`dados/ouro/projeto.duckdb`), organizado nos esquemas `prata` e `ouro`.
+
+### Grao da tabela fato
+Uma linha de `ouro.fato_adaptacao` representa **um jogo da Steam que possui correspondencia na base de filmes do IMDb/TMDB** (chave primaria: `jogo_id`).
+
+### Esquema Estrela (`ouro`)
+* `ouro.dim_jogo`: uma linha por jogo da Steam (`jogo_id`, `nome_jogo`, `data_lancamento`, `preco`).
+* `ouro.dim_filme`: uma linha por filme do IMDb/TMDB (`filme_id`, `titulo_filme`, `ano_lancamento`, `faixa_receita`).
+* `ouro.fato_adaptacao`: metricas de comparacao (`jogo_id`, `filme_id`, `nota_metacritic`, `nota_imdb`, `receita_filme`, `diferenca_nota`), filtrada a partir da tabela enriquecida onde `id IS NOT NULL`.
+* `ouro.vw_adaptacoes_completo`: view que junta a fato com as duas dimensoes para consultas analiticas diretas.
