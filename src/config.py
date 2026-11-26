@@ -11,13 +11,15 @@ RELATORIOS = RAIZ / "relatorios"
 
 BRONZE_STEAM = BRONZE / "steam"
 BRONZE_FILMES = BRONZE / "filmes"
-PROVENIENCIA_PRATA = PRATA / "proveniencia.jsonl"
 
 PADRAO_STEAM = "steam_games_*.csv"
 PADRAO_FILMES = "filmes_*.csv"
 PALAVRAS_PROIBIDAS_STEAM = ["playtest", "hentai", "demo", "sex"]
 
 ARQUIVO_LOG = RAIZ / "pipeline.log"
+
+DATASET_STEAM = "fronkongames/steam-games-dataset"
+DATASET_FILMES = "alanvourch/tmdb-movies-daily-updates"
 
 
 def configurar_log(nivel=logging.INFO):

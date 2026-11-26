@@ -1,48 +1,54 @@
-import kagglehub
-import shutil
-from pathlib import Path
 import json
+import logging
+import shutil
 from datetime import datetime
-from datetime import date
+from pathlib import Path
 
-DATASET = "fronkongames/steam-games-dataset"
-BRONZE = Path("dados/bronze/steam")
+import kagglehub
 
-def baixar():
-    pasta = kagglehub.dataset_download(DATASET)
-    print("baixado em:", pasta)
-    return Path(pasta)
+import config
 
-def localizar(pasta):
-    arquivos = list(pasta.glob("*.csv"))
-    if not arquivos:
-        raise FileNotFoundError("nenhum CSV")
-    print("encontrados:", [a.name for a in arquivos])
-    return arquivos[0]
+log = logging.getLogger(__name__)
 
-def copiar(origem):
-    BRONZE.mkdir(parents=True, exist_ok=True)
-    hoje = date.today().strftime("%Y%m%d")
-    destino = BRONZE / f"steam_games_{hoje}.csv"
-    shutil.copy(origem, destino)
+
+def baixar_steam():
+    config.BRONZE_STEAM.mkdir(parents=True, exist_ok=True)
+
+    log.info("baixando dataset da Steam via kagglehub: %s", config.DATASET_STEAM)
+    pasta_cache = Path(kagglehub.dataset_download(config.DATASET_STEAM))
+
+    csvs = sorted(pasta_cache.glob("*.csv"))
+    if not csvs:
+        raise FileNotFoundError(f"nenhum CSV encontrado em {pasta_cache}")
+
+    origem = csvs[0]
+    hoje = datetime.now().strftime("%Y%m%d")
+    destino = config.BRONZE_STEAM / f"steam_games_{hoje}.csv"
+
+    shutil.copy2(origem, destino)
+    log.info("arquivo copiado para: %s", destino)
     return destino
 
-def registrar(origem, destino):
+
+def registrar(arquivo):
     info = {
-        "fonte": DATASET,
-        "arquivo_origem": origem.name,
-        "arquivo_bronze": destino.name,
-        "extraido_em": datetime.now().isoformat(),
+        "fonte": "kagglehub",
+        "dataset": config.DATASET_STEAM,
+        "arquivo": arquivo.name,
+        "tamanho_bytes": arquivo.stat().st_size,
+        "ingerido_em": datetime.now().isoformat(timespec="seconds"),
     }
-    caminho = BRONZE / "proveniencia.jsonl"
+    caminho = config.BRONZE_STEAM / "proveniencia.jsonl"
     with caminho.open("a", encoding="utf-8") as f:
         f.write(json.dumps(info, ensure_ascii=False) + "\n")
+    log.info("proveniencia registrada em: %s", caminho)
+
 
 def main():
-    pasta = baixar()
-    origem = localizar(pasta)
-    destino = copiar(origem)
-    registrar(origem, destino)
+    arquivo = baixar_steam()
+    registrar(arquivo)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
+    config.configurar_log()
     main()
