@@ -27,11 +27,17 @@ def etapa_enriquecimento():
     enriquecer.main()
 
 
+def etapa_carga():
+    import carga
+    
+    carga.main()
+
+
 ETAPAS = [
     ("ingestao", etapa_ingestao),
     ("transformacao", etapa_transformacao),
     ("enriquecimento", etapa_enriquecimento),
-    ("carga", None),
+    ("carga", etapa_carga),
     ("modelagem", None),
 ]
 

@@ -47,3 +47,19 @@ Quartil gerado a partir do orçamento financeiro (`revenue`) na base de filmes, 
 
 ### chave_nome_jogo / chave_nome_filme
 Nomes dos jogos e filmes padronizados, com os acentos retirados e com todas as letras convertidas em minúsculas (ex: "Spider-Man" -> "spider-man"). Este campo oculto não é para ser exibido graficamente, servindo exclusivamente como âncora de cruzamento de dados (*string matching*) para unir as duas tabelas na futura Camada Ouro.
+
+## Juncao (Enriquecimento)
+Base de jogos da Steam (`steam.parquet`) juntada a base de filmes (`filmes.parquet`) por `chave_nome_jogo = chave_nome_filme`, com `how="left"` e `validate="many_to_one"`.
+Antes da juncao, foi corrigido um defeito no cabecalho do CSV bruto da Steam (`DiscountDLC count` sem virgula, que deslocava as colunas na leitura) e os filmes com titulo repetido foram deduplicados de 479.698 para 408.182 registros, mantendo o de maior receita e avaliacao no IMDb.
+
+* Chaves unicas nos dois lados: 6.423
+* Linhas na esquerda (Steam): 115.698
+* Linhas no resultado: 115.698
+* Com par no IMDb: 7.672
+* Sem par no IMDb: 108.026
+
+### Quem nao casou
+108.026 jogos nao possuem par na base de filmes. O motivo principal e que a grande maioria dos jogos da Steam sao propriedades originais sem adaptacao cinematografica com o mesmo titulo (ou possuem subtitulos/grafias diferentes entre o jogo e o filme).
+
+### Atributo derivado pos-juncao: `diferenca_nota`
+Diferenca entre a nota da critica do jogo (`Metacritic score`, escala 0-100) e a nota do filme (`imdb_rating * 10`, convertida para escala 0-100). Calculado para os 426 registros que possuem ambas as notas preenchidas, permitindo avaliar diretamente se as adaptacoes tendem a ser melhor avaliadas no cinema (valor negativo) ou nos jogos (valor positivo).
