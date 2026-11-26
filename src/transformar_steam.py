@@ -1,20 +1,22 @@
 import json
+import logging
 from datetime import datetime
-from pathlib import Path
+
 import pandas as pd
+
+import config
 import limpeza
 
-BRONZE = Path("dados/bronze/steam")
-PRATA = Path("dados/prata")
-PADRAO = "steam_games_*.csv"
+log = logging.getLogger(__name__)
+
 
 def carregar():
-    arquivos = sorted(BRONZE.glob(PADRAO))
+    arquivos = sorted(config.BRONZE_STEAM.glob(config.PADRAO_STEAM))
     if not arquivos:
-        raise FileNotFoundError(f"nada em {BRONZE}")
+        raise FileNotFoundError(f"nada em {config.BRONZE_STEAM}")
     caminho = arquivos[-1]
 
-    # Corrige o defeito do cabeçalho do CSV da Steam (falta vírgula em DiscountDLC count)
+    # Corrige o defeito do cabecalho do CSV da Steam (falta virgula em DiscountDLC count)
     with caminho.open("r", encoding="utf-8") as f:
         cabecalho = (
             f.readline()
@@ -24,37 +26,56 @@ def carregar():
         )
 
     df = pd.read_csv(caminho, names=cabecalho, skiprows=1, index_col=False)
-    print("lido:", caminho.name, df.shape)
+    log.info("lido: %s %s", caminho.name, df.shape)
     return df, caminho
 
+
 def conferir_chave(df, chave="AppID"):
-    repetidas = df[chave].duplicated().sum()
-    print("chaves repetidas:", repetidas)
+    repetidas = int(df[chave].duplicated().sum())
     if repetidas:
-        print(df[df[chave].duplicated(keep=False)])
+        log.warning("chaves repetidas em %s: %d", chave, repetidas)
+    else:
+        log.info("chaves repetidas em %s: 0", chave)
     return df.drop_duplicates(subset=chave)
+
 
 def tratar_plataforma(df):
     e_windows = df["Windows"] == True
-    print("jogos compativeis com Windows:", e_windows.sum())
-    print("jogos nao compativeis removidos:", (~e_windows).sum())
+    log.info("jogos compativeis com Windows: %d", int(e_windows.sum()))
+    log.info("jogos nao compativeis removidos: %d", int((~e_windows).sum()))
     return df[e_windows].copy()
+
 
 def tratar_metacritic(df):
     coluna = "Metacritic score"
-    print(f"valores nulos ou zero em {coluna}:", (df[coluna] == 0).sum() + df[coluna].isna().sum())
+    sem_nota = int((df[coluna] == 0).sum() + df[coluna].isna().sum())
+    log.info("valores nulos ou zero em %s: %d", coluna, sem_nota)
     return df
+
 
 def criar_chave_juncao(df):
     df["chave_nome_jogo"] = limpeza.chave_texto(df["Name"])
     return df
 
+
+def filtrar_palavras_proibidas(df):
+    padrao = "|".join(config.PALAVRAS_PROIBIDAS_STEAM)
+    condicao = df["Name"].str.contains(padrao, case=False, na=False)
+    log.info(
+        "jogos removidos por termos indesejados (%s): %d",
+        config.PALAVRAS_PROIBIDAS_STEAM,
+        int(condicao.sum()),
+    )
+    return df[~condicao].copy()
+
+
 def salvar(df):
-    PRATA.mkdir(parents=True, exist_ok=True)
-    destino = PRATA / "steam.parquet"
+    config.PRATA.mkdir(parents=True, exist_ok=True)
+    destino = config.PRATA / "steam.parquet"
     df.to_parquet(destino, index=False)
-    print("salvo em:", destino, df.shape)
+    log.info("salvo em: %s %s", destino, df.shape)
     return destino
+
 
 def registrar(origem, destino, antes, depois, decisoes):
     info = {
@@ -63,41 +84,34 @@ def registrar(origem, destino, antes, depois, decisoes):
         "linhas_antes": antes,
         "linhas_depois": depois,
         "decisoes": decisoes,
-        "transformado_em": datetime.now().isoformat(timespec="seconds")
+        "transformado_em": datetime.now().isoformat(timespec="seconds"),
     }
-    caminho = PRATA / "proveniencia.jsonl"
+    caminho = config.PRATA / "proveniencia.jsonl"
     with caminho.open("a", encoding="utf-8") as f:
         f.write(json.dumps(info, ensure_ascii=False) + "\n")
-
-def filtrar_palavras_proibidas(df):
-    
-    palavras_proibidas = ["playtest", "hentai", "demo","sex"]
-    
-    padrao = '|'.join(palavras_proibidas)
-    
-    condicao = df["Name"].str.contains(padrao, case=False, na=False)
-    print(f"Jogos removidos por conterem termos indesejados ({palavras_proibidas}):", condicao.sum())
-    
-    return df[~condicao].copy()
 
 def main():
     df, origem = carregar()
     antes = len(df)
-    
+
     df = limpeza.tirar_espacos(df)
     df = conferir_chave(df, "AppID")
     df = tratar_plataforma(df)
     df = tratar_metacritic(df)
     df = criar_chave_juncao(df)
     df = filtrar_palavras_proibidas(df)
-    
+
     destino = salvar(df)
     registrar(origem, destino, antes, len(df), [
+        "cabecalho DiscountDLC count corrigido na leitura",
         "espacos removidos usando modulo generico",
         "chave AppID conferida",
-        "jogos nao-Windows removidos",
-        "jogos com termos indesejados (playtest, hentai, etc.) filtrados"
+        "jogos nao-Windows removidos por irrelevancia",
+        "criada coluna 'chave_nome_jogo' para juncao com IMDb",
+        "jogos com termos indesejados filtrados",
     ])
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
+    config.configurar_log()
     main()
