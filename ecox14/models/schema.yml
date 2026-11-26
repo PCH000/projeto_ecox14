@@ -1,0 +1,72 @@
+version: 2
+
+models:
+  - name: dim_jogo
+    description: >
+      Cadastro de jogos da Steam compativeis com Windows, uma linha por jogo.
+      Origem: tabela steam da camada prata.
+    columns:
+      - name: jogo_id
+        description: Identificador unico do jogo na Steam (AppID).
+        data_tests:
+          - unique
+          - not_null
+      - name: nome_jogo
+        description: Nome oficial do jogo na Steam.
+      - name: data_lancamento
+        description: Data de lancamento do jogo.
+      - name: preco
+        description: Preco do jogo em dolares na Steam.
+
+  - name: dim_filme
+    description: >
+      Cadastro de filmes do IMDb/TMDB com avaliacao preenchida, uma linha por filme.
+      Origem: tabela filmes da camada prata.
+    columns:
+      - name: filme_id
+        description: Identificador unico do filme.
+        data_tests:
+          - unique
+          - not_null
+      - name: titulo_filme
+        description: Titulo do filme no catalogo IMDb/TMDB.
+      - name: ano_lancamento
+        description: Ano de lancamento extraido da data de estreia.
+      - name: faixa_receita
+        description: Classificacao da bilheteria em quartis (Baixa, Media, Alta, Blockbuster).
+
+  - name: fato_adaptacao
+    description: >
+      Tabela fato que cruza jogos da Steam com filmes de mesmo titulo no IMDb/TMDB.
+      Grao: uma linha por jogo da Steam com correspondencia em filmes.
+    columns:
+      - name: jogo_id
+        description: Chave estrangeira para dim_jogo.
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              to: ref('dim_jogo')
+              field: jogo_id
+      - name: filme_id
+        description: Chave estrangeira para dim_filme.
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_filme')
+              field: filme_id
+      - name: nota_metacritic
+        description: Nota da critica do jogo no Metacritic (0 a 100; 0 indica sem nota).
+      - name: nota_imdb
+        description: Nota media do filme no IMDb (0 a 10).
+      - name: receita_filme
+        description: Receita de bilheteria do filme em dolares.
+      - name: diferenca_nota
+        description: >
+          Diferenca entre nota_metacritic e (nota_imdb * 10).
+          Valores negativos indicam que o filme foi melhor avaliado que o jogo.
+
+  - name: vw_adaptacoes_completo
+    description: >
+      View analitica que junta fato_adaptacao com dim_jogo e dim_filme,
+      pronta para consumo direto pelo dashboard.
