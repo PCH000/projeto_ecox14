@@ -168,7 +168,7 @@ def main():
     try:
         criar_esquemas(con)
         carregar_prata(con)
-        construir_ouro(con)
+        # construir_ouro(con)
         conferir(con)
     finally:
         con.close()

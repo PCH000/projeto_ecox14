@@ -29,8 +29,18 @@ def etapa_enriquecimento():
 
 def etapa_carga():
     import carga
-    
+
     carga.main()
+
+
+def etapa_modelagem():
+    import subprocess
+
+    subprocess.run(
+        ["dbt", "run"],
+        cwd=config.RAIZ / "ecox14",
+        check=True,
+    )
 
 
 ETAPAS = [
@@ -38,7 +48,7 @@ ETAPAS = [
     ("transformacao", etapa_transformacao),
     ("enriquecimento", etapa_enriquecimento),
     ("carga", etapa_carga),
-    ("modelagem", None),
+    ("modelagem", etapa_modelagem),
 ]
 
 log = logging.getLogger(__name__)
