@@ -13,7 +13,17 @@ def carregar():
     if not arquivos:
         raise FileNotFoundError(f"nada em {BRONZE}")
     caminho = arquivos[-1]
-    df = pd.read_csv(caminho)
+
+    # Corrige o defeito do cabeçalho do CSV da Steam (falta vírgula em DiscountDLC count)
+    with caminho.open("r", encoding="utf-8") as f:
+        cabecalho = (
+            f.readline()
+            .strip()
+            .replace("DiscountDLC count", "Discount,DLC count")
+            .split(",")
+        )
+
+    df = pd.read_csv(caminho, names=cabecalho, skiprows=1, index_col=False)
     print("lido:", caminho.name, df.shape)
     return df, caminho
 
