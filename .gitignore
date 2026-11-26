@@ -7,3 +7,4 @@ dados/prata/*.parquet
 dados/ouro/*
 !dados/**/.gitkeep
 !dados/prata/proveniencia.jsonl
+pipeline.log
